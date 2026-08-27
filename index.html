@@ -3,91 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Certificate Generator</title>
 
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
 body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
   margin: 0;
   padding: 20px;
-  font-family: Arial, sans-serif;
-  background: #f1f3f5;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 700px;
   margin: auto;
   background: white;
   padding: 25px;
   border-radius: 15px;
-  box-shadow: 0 5px 25px rgba(0,0,0,.12);
+  text-align: center;
 }
 
 h1 {
-  text-align: center;
-  margin-top: 0;
-}
-
-.subtitle {
-  text-align: center;
-  color: #666;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin: 20px 0;
-  flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 input {
-  flex: 1;
-  min-width: 230px;
+  width: 90%;
   padding: 14px;
   font-size: 18px;
+  margin: 15px 0;
   border: 1px solid #aaa;
   border-radius: 8px;
 }
 
 button {
-  padding: 14px 20px;
+  padding: 13px 20px;
+  margin: 5px;
   border: none;
   border-radius: 8px;
   background: #17446b;
   color: white;
   font-size: 16px;
-  cursor: pointer;
 }
 
-button:hover {
-  opacity: .9;
-}
-
-.preview {
-  margin-top: 20px;
-  background: #ddd;
-  padding: 10px;
-  text-align: center;
-}
-
-iframe {
-  width: 100%;
-  height: 500px;
-  border: none;
-  background: white;
-}
-
-.note {
-  text-align: center;
-  color: #777;
-  font-size: 14px;
+#message {
   margin-top: 15px;
+  color: #555;
 }
 </style>
 </head>
@@ -98,17 +60,15 @@ iframe {
 
 <h1>Certificate Generator</h1>
 
-<p class="subtitle">
-Rubuta sunan ɗalibi sannan ka danna Generate Certificate.
-</p>
-
-<div class="controls">
+<p>Rubuta sunan ɗalibi:</p>
 
 <input
   type="text"
   id="studentName"
   placeholder="Sunan ɗalibi..."
 >
+
+<br>
 
 <button onclick="generateCertificate()">
 Generate Certificate
@@ -118,113 +78,106 @@ Generate Certificate
 Download Certificate
 </button>
 
-</div>
-
-<div class="preview">
-  <iframe id="preview"></iframe>
-</div>
-
-<p class="note">
-Certificate Generator — Tarbiyatul Auladul Islam
-</p>
+<p id="message"></p>
 
 </div>
 
 <script>
 
-let generatedPDF = null;
+let finalPDF = null;
 
 async function generateCertificate() {
 
-  const name = document.getElementById("studentName").value.trim();
+  const name = document
+    .getElementById("studentName")
+    .value
+    .trim();
+
+  const message =
+    document.getElementById("message");
 
   if (!name) {
-    alert("Da fatan ka rubuta sunan ɗalibi.");
+    message.textContent =
+      "Da fatan ka rubuta sunan ɗalibi.";
     return;
   }
+
+  message.textContent =
+    "Ana ƙirƙirar certificate...";
 
   try {
 
     const response = await fetch(
-      "modern_arabic_certificate_landscape.pdf"
+      "./modern_arabic_certificate_landscape.pdf"
     );
 
-    const existingPdfBytes = await response.arrayBuffer();
+    if (!response.ok) {
+      throw new Error(
+        "Ba a samu PDF ɗin certificate ba."
+      );
+    }
 
-    const pdfDoc = await PDFLib.PDFDocument.load(
-      existingPdfBytes
-    );
+    const pdfBytes =
+      await response.arrayBuffer();
 
-    const pages = pdfDoc.getPages();
+    const pdfDoc =
+      await PDFLib.PDFDocument.load(pdfBytes);
+
+    const pages =
+      pdfDoc.getPages();
 
     const page = pages[0];
 
-    const { width, height } = page.getSize();
+    const { width, height } =
+      page.getSize();
 
-    const font = await pdfDoc.embedFont(
-      PDFLib.StandardFonts.HelveticaBold
-    );
+    const font =
+      await pdfDoc.embedFont(
+        PDFLib.StandardFonts.HelveticaBold
+      );
 
     const fontSize = 30;
 
-    const textWidth = font.widthOfTextAtSize(
-      name,
-      fontSize
-    );
+    const textWidth =
+      font.widthOfTextAtSize(
+        name,
+        fontSize
+      );
 
-    const x = (width - textWidth) / 2;
+    const x =
+      (width - textWidth) / 2;
 
-    /*
-      Wannan shi ne wurin sunan.
-      Idan sunan ya fito sama ko ƙasa,
-      za mu gyara wannan value.
-    */
-
-    const y = height / 2;
+    const y =
+      height / 2;
 
     page.drawText(name, {
-
       x: x,
       y: y,
-
       size: fontSize,
-
       font: font,
-
-      color: PDFLib.rgb(
-        0.10,
-        0.20,
-        0.30
-      )
-
+      color: PDFLib.rgb(0.1, 0.2, 0.3)
     });
 
-    generatedPDF = await pdfDoc.save();
+    finalPDF =
+      await pdfDoc.save();
 
-    const blob = new Blob(
-      [generatedPDF],
-      { type: "application/pdf" }
-    );
-
-    const url = URL.createObjectURL(blob);
-
-    document.getElementById("preview").src = url;
+    message.textContent =
+      "An shirya certificate. ✅";
 
   } catch (error) {
 
     console.error(error);
 
-    alert(
-      "An samu matsala wajen ƙirƙirar certificate."
-    );
-
+    message.textContent =
+      "An samu matsala: " +
+      error.message;
   }
 }
 
 
 function downloadCertificate() {
 
-  if (!generatedPDF) {
+  if (!finalPDF) {
 
     alert(
       "Da farko danna Generate Certificate."
@@ -233,23 +186,36 @@ function downloadCertificate() {
     return;
   }
 
-  const blob = new Blob(
-    [generatedPDF],
-    { type: "application/pdf" }
-  );
+  const blob =
+    new Blob(
+      [finalPDF],
+      { type: "application/pdf" }
+    );
 
-  const url = URL.createObjectURL(blob);
+  const url =
+    URL.createObjectURL(blob);
 
-  const link = document.createElement("a");
+  const link =
+    document.createElement("a");
+
+  const name =
+    document
+      .getElementById("studentName")
+      .value
+      .trim();
 
   link.href = url;
 
   link.download =
     "Certificate-" +
-    document.getElementById("studentName").value +
+    name +
     ".pdf";
 
+  document.body.appendChild(link);
+
   link.click();
+
+  link.remove();
 
   URL.revokeObjectURL(url);
 }
@@ -257,4 +223,4 @@ function downloadCertificate() {
 </script>
 
 </body>
-  </html>
+</html>
